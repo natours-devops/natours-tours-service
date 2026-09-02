@@ -1,9 +1,13 @@
 const multer = require('multer');
 const sharp = require('sharp');
+const axios = require('axios');
 const Tour = require('../models/tourModel');
 const catchAsync = require('../utils/catchAsync');
 const factory = require('./handlerFactory');
 const AppError = require('../utils/appError');
+
+const AUTH_SERVICE_URL = process.env.AUTH_SERVICE_URL || 'http://localhost:3001';
+const REVIEW_SERVICE_URL = process.env.REVIEW_SERVICE_URL || 'http://localhost:3003';
 
 const upload = multer({ storage: multer.memoryStorage(), fileFilter: (req, file, cb) => {
   if (file.mimetype.startsWith('image')) cb(null, true);
@@ -49,7 +53,27 @@ exports.deleteTour = factory.deleteOne(Tour);
 exports.getTourBySlug = catchAsync(async (req, res, next) => {
   const tour = await Tour.findOne({ slug: req.params.slug });
   if (!tour) return next(new AppError('No tour found with that slug', 404));
-  res.status(200).json({ status: 'success', data: { data: tour } });
+
+  const [enrichedGuides, reviewsRes] = await Promise.all([
+    Promise.all(
+      tour.guides.map(async (guideId) => {
+        try {
+          const { data } = await axios.get(`${AUTH_SERVICE_URL}/api/v1/users/internal/${guideId}`);
+          const { name, role, photo } = data.data.data;
+          return { _id: guideId, name, role, photo };
+        } catch {
+          return { _id: guideId };
+        }
+      })
+    ),
+    axios.get(`${REVIEW_SERVICE_URL}/api/v1/reviews/internal?tour=${tour._id}`).catch(() => ({ data: { data: { data: [] } } })),
+  ]);
+
+  const tourObj = tour.toObject();
+  tourObj.guides = enrichedGuides;
+  tourObj.reviews = reviewsRes.data.data.data;
+
+  res.status(200).json({ status: 'success', data: { data: tourObj } });
 });
 
 exports.getTourStats = catchAsync(async (req, res, next) => {
