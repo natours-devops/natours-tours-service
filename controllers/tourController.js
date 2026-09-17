@@ -6,8 +6,8 @@ const catchAsync = require('../utils/catchAsync');
 const factory = require('./handlerFactory');
 const AppError = require('../utils/appError');
 
-const AUTH_SERVICE_URL = process.env.AUTH_SERVICE_URL || 'http://localhost:3001';
-const REVIEW_SERVICE_URL = process.env.REVIEW_SERVICE_URL || 'http://localhost:3003';
+const AUTH_SERVICE_URL = process.env.AUTH_SERVICE_URL ;
+const REVIEW_SERVICE_URL = process.env.REVIEW_SERVICE_URL;
 
 const upload = multer({ storage: multer.memoryStorage(), fileFilter: (req, file, cb) => {
   if (file.mimetype.startsWith('image')) cb(null, true);
