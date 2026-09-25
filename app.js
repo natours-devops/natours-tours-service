@@ -9,6 +9,7 @@ const cookieParser = require('cookie-parser');
 const AppError = require('./utils/appError');
 const globalErrorHandler = require('./controllers/errorController');
 const tourRouter = require('./routes/tourRoutes');
+const healthCheck = require('./utils/healthCheck');
 
 const app = express();
 
@@ -23,6 +24,8 @@ app.use(xss());
 app.use(hpp({ whitelist: ['duration', 'ratingsQuantity', 'ratingsAverage', 'difficulty', 'price', 'maxGroupSize'] }));
 
 app.use(express.static(`${__dirname}/public`));
+
+app.get('/health', healthCheck('tour-service'));
 
 app.use('/api/v1/tours', tourRouter);
 
